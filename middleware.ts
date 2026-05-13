@@ -21,20 +21,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const isAuthPage = request.nextUrl.pathname === '/'
-  const isProtected = ['/dashboard', '/focus', '/leads', '/analytics'].some(p =>
-    request.nextUrl.pathname.startsWith(p)
-  )
-
-  if (!user && isProtected) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // Solo refrescar el token — los redirects los gestiona cada página
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }
