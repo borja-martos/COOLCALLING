@@ -1,44 +1,64 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
 import { getLevelFromXp, getXpProgress, getNextLevel } from '@/lib/gamification'
 
-export default async function DashboardPage() {
+export default function DashboardPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
+  const router = useRouter()
 
-  // Fetch stats
-  const { data: stats } = await supabase
-    .from('user_stats').select('*').eq('user_id', user.id).single()
+  const [loading, setLoading]   = useState(true)
+  const [userEmail, setUserEmail] = useState('')
+  const [totalXp, setTotalXp]   = useState(0)
+  const [streak, setStreak]     = useState(0)
+  const [callsToday, setCallsToday] = useState(0)
+  const [interestedToday, setInterestedToday] = useState(0)
+  const [xpToday, setXpToday]   = useState(0)
+  const [pendingLeads, setPendingLeads] = useState(0)
 
-  const totalXp  = stats?.total_xp   || 0
-  const streak   = stats?.streak_days || 0
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/'); return }
+
+      setUserEmail(user.email || '')
+
+      const [{ data: stats }, { data: todayCalls }, { count }] = await Promise.all([
+        supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
+        supabase.from('calls').select('result, xp_earned').eq('user_id', user.id)
+          .gte('created_at', new Date().toISOString().split('T')[0]),
+        supabase.from('leads').select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id).eq('status', 'pending'),
+      ])
+
+      setTotalXp(stats?.total_xp || 0)
+      setStreak(stats?.streak_days || 0)
+      setCallsToday(todayCalls?.length || 0)
+      setInterestedToday(todayCalls?.filter(c => c.result === 'interested').length || 0)
+      setXpToday(todayCalls?.reduce((s, c) => s + (c.xp_earned || 0), 0) || 0)
+      setPendingLeads(count || 0)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
   const level    = getLevelFromXp(totalXp)
   const nextLvl  = getNextLevel(totalXp)
   const progress = getXpProgress(totalXp)
 
-  // Today's calls
-  const today = new Date().toISOString().split('T')[0]
-  const { data: todayCalls } = await supabase
-    .from('calls')
-    .select('result, xp_earned')
-    .eq('user_id', user.id)
-    .gte('created_at', today)
-
-  const callsToday     = todayCalls?.length || 0
-  const interestedToday = todayCalls?.filter(c => c.result === 'interested').length || 0
-  const xpToday        = todayCalls?.reduce((s, c) => s + (c.xp_earned || 0), 0) || 0
-
-  // Pending leads
-  const { count: pendingLeads } = await supabase
-    .from('leads').select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id).eq('status', 'pending')
+  if (loading) return (
+    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--white)' }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gray-mid)' }}>Cargando...</div>
+    </div>
+  )
 
   return (
     <div className="layout">
-      <Sidebar userEmail={user.email} totalXp={totalXp} streak={streak} />
+      <Sidebar userEmail={userEmail} totalXp={totalXp} streak={streak} />
       <div className="main">
         <div className="topbar">
           <span className="topbar-title">Inicio</span>
@@ -49,12 +69,12 @@ export default async function DashboardPage() {
         </div>
 
         <div className="page-content">
-          {/* Greeting + streak */}
+          {/* Greeting */}
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
             <div>
               <div className="section-label">Buenos días</div>
               <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                {user.email?.split('@')[0]}.
+                {userEmail.split('@')[0]}.
               </div>
             </div>
             {streak > 0 && (
@@ -87,21 +107,18 @@ export default async function DashboardPage() {
             </div>
             <div className="kpi-card card">
               <span style={{ fontSize: 22 }}>👥</span>
-              <span className="kpi-number">{pendingLeads || 0}</span>
+              <span className="kpi-number">{pendingLeads}</span>
               <span className="kpi-label">Leads pendientes</span>
             </div>
           </div>
 
-          {/* Bottom section */}
+          {/* Bottom */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
-            {/* CTA */}
             <div className="card card-black" style={{ padding: 36, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 260 }}>
               <div>
                 <div style={{ fontSize: 36, fontWeight: 900, color: 'white', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 20 }}>
-                  {pendingLeads ? `${pendingLeads} leads<br/>esperando.` : 'Sube tus leads\ny empieza.'}
+                  {pendingLeads ? `${pendingLeads} leads esperando.` : 'Sube tus leads\ny empieza.'}
                 </div>
-
-                {/* Level progress */}
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#555', fontWeight: 600, marginBottom: 8 }}>
                     <span>Nivel {level.level} · {level.name}</span>
@@ -112,14 +129,11 @@ export default async function DashboardPage() {
                   </div>
                 </div>
               </div>
-
-              <Link href="/focus" className="btn btn-primary btn-lg btn-full"
-                style={{ background: 'white', color: 'black' }}>
+              <Link href="/focus" className="btn btn-primary btn-lg btn-full" style={{ background: 'white', color: 'black' }}>
                 📞 &nbsp;INICIAR SESIÓN DE LLAMADAS
               </Link>
             </div>
 
-            {/* Quick actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
                 { href: '/leads',     icon: '📂', label: 'Subir nuevo Excel' },
@@ -127,7 +141,7 @@ export default async function DashboardPage() {
                 { href: '/analytics', icon: '📊', label: 'Ver analítica' },
               ].map(({ href, icon, label }) => (
                 <Link key={label} href={href}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', background: 'var(--gray)', borderRadius: 14, textDecoration: 'none', color: 'var(--black)', fontSize: 14, fontWeight: 600, transition: 'background 0.15s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', background: 'var(--gray)', borderRadius: 14, textDecoration: 'none', color: 'var(--black)', fontSize: 14, fontWeight: 600 }}>
                   <span style={{ fontSize: 18 }}>{icon}</span>
                   {label}
                 </Link>
