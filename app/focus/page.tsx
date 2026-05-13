@@ -34,7 +34,7 @@ export default function FocusPage() {
   const [showXpFloat, setShowXpFloat] = useState(false)
 
   const supabase   = createClient()
-  const recogRef   = useRef<SpeechRecognition | null>(null)
+  const recogRef   = useRef<any>(null) // eslint-disable-line @typescript-eslint/no-explicit-any
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
   const userRef    = useRef<string>('')
 
@@ -81,15 +81,16 @@ export default function FocusPage() {
 
   // ── VOICE DICTATION ───────────────────────────────────────────
   const startRecording = useCallback(() => {
-    const SpeechRecognition = (window as unknown as { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
-      || (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) { alert('Tu navegador no soporta dictado de voz. Usa Chrome.'); return }
 
     const recog = new SpeechRecognition()
     recog.continuous = true
     recog.interimResults = true
     recog.lang = 'es-ES'
-    recog.onresult = (e: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recog.onresult = (e: any) => {
       let text = ''
       for (let i = 0; i < e.results.length; i++) {
         text += e.results[i][0].transcript + ' '
