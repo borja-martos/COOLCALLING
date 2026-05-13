@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [isLogin, setIsLogin]   = useState(true)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
+  const [msg, setMsg]           = useState('')
   const supabase = createClient()
   const router   = useRouter()
 
@@ -17,17 +18,29 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setMsg('')
 
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
+      router.push('/dashboard')
+      router.refresh()
     } else {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
-    }
 
-    router.push('/dashboard')
-    router.refresh()
+      // Si hay sesión activa → confirmación desactivada, entrar directo
+      if (data.session) {
+        router.push('/dashboard')
+        router.refresh()
+        return
+      }
+
+      // Si no hay sesión → necesita confirmar email, mostrar mensaje
+      setMsg('✅ Cuenta creada. Revisa tu email para confirmar y luego accede con Login.')
+      setIsLogin(true)
+      setLoading(false)
+    }
   }
 
   return (
@@ -75,6 +88,11 @@ export default function LoginPage() {
           {error && (
             <div style={{ background: 'var(--red-lt)', color: 'var(--red)', padding: '12px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600 }}>
               {error}
+            </div>
+          )}
+          {msg && (
+            <div style={{ background: '#0a2a0a', color: '#4caf50', padding: '12px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600 }}>
+              {msg}
             </div>
           )}
 
