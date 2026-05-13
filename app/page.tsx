@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -12,7 +11,6 @@ export default function LoginPage() {
   const [error, setError]       = useState('')
   const [msg, setMsg]           = useState('')
   const supabase = createClient()
-  const router   = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -23,21 +21,19 @@ export default function LoginPage() {
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
-      router.push('/dashboard')
-      router.refresh()
+      window.location.href = '/dashboard'
     } else {
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
 
-      // Si hay sesión activa → confirmación desactivada, entrar directo
+      // Si hay sesión activa → email confirmation desactivada, entrar directo
       if (data.session) {
-        router.push('/dashboard')
-        router.refresh()
+        window.location.href = '/dashboard'
         return
       }
 
-      // Si no hay sesión → necesita confirmar email, mostrar mensaje
-      setMsg('✅ Cuenta creada. Revisa tu email para confirmar y luego accede con Login.')
+      // Si no hay sesión → confirmar email primero
+      setMsg('✅ Cuenta creada. Revisa tu email y confirma antes de hacer Login.')
       setIsLogin(true)
       setLoading(false)
     }
@@ -97,13 +93,13 @@ export default function LoginPage() {
           )}
 
           <button type="submit" className="btn btn-primary btn-xl btn-full" disabled={loading} style={{ marginTop: 8 }}>
-            {loading ? 'Un momento...' : isLogin ? 'ENTRAR' : 'CREAR CUENTA'}
+            {loading ? 'Entrando...' : isLogin ? 'ENTRAR' : 'CREAR CUENTA'}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--gray-mid)', marginTop: 20 }}>
           {isLogin ? '¿Sin cuenta? ' : '¿Ya tienes cuenta? '}
-          <button onClick={() => { setIsLogin(!isLogin); setError('') }}
+          <button onClick={() => { setIsLogin(!isLogin); setError(''); setMsg('') }}
             style={{ background: 'none', border: 'none', color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
             {isLogin ? 'Regístrate gratis' : 'Accede aquí'}
           </button>
