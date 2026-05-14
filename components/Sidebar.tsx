@@ -33,8 +33,11 @@ export default function Sidebar({ userEmail = '', totalXp = 0, streak = 0 }: Sid
   return (
     <div className="sidebar">
       <div className="sidebar-logo">
-        <div className="dot" />
-        <span className="name">CoolCalling</span>
+        <img
+          src="/logo.svg"
+          alt="CoolCalling"
+          style={{ width: 148, height: 'auto', filter: 'brightness(0) invert(1)' }}
+        />
       </div>
 
       {streak > 0 && (
