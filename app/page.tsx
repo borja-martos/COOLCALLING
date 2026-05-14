@@ -4,19 +4,17 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
-  const [email, setEmail]       = useState('')
+  const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
-  const [isLogin, setIsLogin]   = useState(true)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [msg, setMsg]           = useState('')
+  const [isLogin, setIsLogin] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+  const [msg, setMsg]         = useState('')
   const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    setError('')
-    setMsg('')
+    setLoading(true); setError(''); setMsg('')
 
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -25,85 +23,96 @@ export default function LoginPage() {
     } else {
       const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
-
-      // Si hay sesión activa → email confirmation desactivada, entrar directo
-      if (data.session) {
-        window.location.href = '/dashboard'
-        return
-      }
-
-      // Si no hay sesión → confirmar email primero
-      setMsg('✅ Cuenta creada. Revisa tu email y confirma antes de hacer Login.')
-      setIsLogin(true)
-      setLoading(false)
+      if (data.session) { window.location.href = '/dashboard'; return }
+      setMsg('Cuenta creada. Revisa tu email y confirma antes de entrar.')
+      setIsLogin(true); setLoading(false)
     }
   }
 
   return (
-    <div className="login-wrap">
-      {/* Left — branding */}
-      <div className="login-left">
-        <div className="sidebar-logo" style={{ marginBottom: 48 }}>
-          <div className="dot" />
-          <span className="name">CoolCalling</span>
-        </div>
-        <div className="login-headline">Vende más.<br />Sin ruido.</div>
-        <div className="login-sub">El sistema de prospección que elimina la fricción y multiplica tus llamadas.</div>
+    <div style={{
+      minHeight: '100vh', background: 'var(--red)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24, position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Burbuja decorativa */}
+      <div style={{
+        position: 'absolute', bottom: -160, right: -160,
+        width: 480, height: 480, borderRadius: '50%',
+        background: 'var(--orange)', opacity: 0.45,
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', top: -100, left: -100,
+        width: 320, height: 320, borderRadius: '50%',
+        background: 'rgba(255,255,255,0.08)',
+        pointerEvents: 'none',
+      }} />
 
-        <div style={{ display: 'flex', gap: 32, marginTop: 48 }}>
-          {[['3.2×', 'Más llamadas'], ['<30s', 'Para empezar'], ['0', 'Notas manuales']].map(([n, l]) => (
-            <div key={l} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 900, color: 'white', letterSpacing: '-0.03em' }}>{n}</span>
-              <span style={{ fontSize: 12, color: '#444', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{l}</span>
-            </div>
-          ))}
-        </div>
+      {/* Logo arriba centrado */}
+      <div style={{ position: 'absolute', top: 32, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+        <img src="/logo.svg" alt="CoolCalling" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
       </div>
 
-      {/* Right — form */}
-      <div className="login-right">
-        <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 8 }}>
-          {isLogin ? 'Acceder' : 'Crear cuenta'}
-        </h1>
-        <p style={{ fontSize: 15, color: 'var(--gray-mid)', marginBottom: 36 }}>
-          {isLogin ? 'Entra y empieza a llamar.' : 'Crea tu cuenta gratuita.'}
-        </p>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input className="form-input" type="email" placeholder="tu@email.com"
-              value={email} onChange={e => setEmail(e.target.value)} required />
+      {/* Card central */}
+      <div style={{
+        background: 'white', borderRadius: 40,
+        padding: '52px 52px', width: '100%', maxWidth: 440,
+        position: 'relative', zIndex: 1,
+      }}>
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--black)', marginBottom: 6 }}>
+            {isLogin ? 'Bienvenido.' : 'Empieza gratis.'}
           </div>
-          <div className="form-group">
-            <label className="form-label">Contraseña</label>
-            <input className="form-input" type="password" placeholder="••••••••"
-              value={password} onChange={e => setPassword(e.target.value)} required />
+          <div style={{ fontSize: 15, color: 'var(--gray-mid)', fontWeight: 500 }}>
+            {isLogin ? 'Entra y empieza a llamar.' : 'Crea tu cuenta en 30 segundos.'}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gray-mid)' }}>Email</label>
+            <input
+              type="email" placeholder="tu@email.com" required
+              value={email} onChange={e => setEmail(e.target.value)}
+              style={{ height: 52, border: '2px solid var(--gray-border)', borderRadius: 14, padding: '0 18px', fontSize: 15, fontFamily: 'HostGrotesk, sans-serif', outline: 'none', width: '100%', transition: 'border-color 0.15s' }}
+              onFocus={e => e.target.style.borderColor = 'var(--red)'}
+              onBlur={e => e.target.style.borderColor = 'var(--gray-border)'}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gray-mid)' }}>Contraseña</label>
+            <input
+              type="password" placeholder="••••••••" required
+              value={password} onChange={e => setPassword(e.target.value)}
+              style={{ height: 52, border: '2px solid var(--gray-border)', borderRadius: 14, padding: '0 18px', fontSize: 15, fontFamily: 'HostGrotesk, sans-serif', outline: 'none', width: '100%', transition: 'border-color 0.15s' }}
+              onFocus={e => e.target.style.borderColor = 'var(--red)'}
+              onBlur={e => e.target.style.borderColor = 'var(--gray-border)'}
+            />
           </div>
 
-          {error && (
-            <div style={{ background: 'var(--red-lt)', color: 'var(--red)', padding: '12px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600 }}>
-              {error}
-            </div>
-          )}
-          {msg && (
-            <div style={{ background: '#0a2a0a', color: '#4caf50', padding: '12px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600 }}>
-              {msg}
-            </div>
-          )}
+          {error && <div style={{ background: '#FFF0EE', color: 'var(--red)', padding: '12px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600 }}>{error}</div>}
+          {msg   && <div style={{ background: '#E6F9EE', color: 'var(--green)', padding: '12px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600 }}>{msg}</div>}
 
-          <button type="submit" className="btn btn-primary btn-xl btn-full" disabled={loading} style={{ marginTop: 8 }}>
-            {loading ? 'Entrando...' : isLogin ? 'ENTRAR' : 'CREAR CUENTA'}
+          <button type="submit" disabled={loading} style={{
+            marginTop: 8, height: 56, borderRadius: 100,
+            background: loading ? 'var(--gray)' : 'var(--red)',
+            color: loading ? 'var(--gray-mid)' : 'white',
+            border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+            fontFamily: 'HostGrotesk, sans-serif', fontSize: 16, fontWeight: 800,
+            transition: 'all 0.15s',
+          }}>
+            {loading ? 'Un momento...' : isLogin ? 'Entrar' : 'Crear cuenta'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--gray-mid)', marginTop: 20 }}>
+        <div style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: 'var(--gray-mid)' }}>
           {isLogin ? '¿Sin cuenta? ' : '¿Ya tienes cuenta? '}
           <button onClick={() => { setIsLogin(!isLogin); setError(''); setMsg('') }}
-            style={{ background: 'none', border: 'none', color: 'var(--purple)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-            {isLogin ? 'Regístrate gratis' : 'Accede aquí'}
+            style={{ background: 'none', border: 'none', color: 'var(--red)', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+            {isLogin ? 'Regístrate' : 'Accede aquí'}
           </button>
-        </p>
+        </div>
       </div>
     </div>
   )

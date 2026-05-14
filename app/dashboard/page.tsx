@@ -4,42 +4,37 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Sidebar from '@/components/Sidebar'
+import NavBar from '@/components/NavBar'
 import { getLevelFromXp, getXpProgress, getNextLevel } from '@/lib/gamification'
 
 export default function DashboardPage() {
   const supabase = createClient()
-  const router = useRouter()
+  const router   = useRouter()
 
-  const [loading, setLoading]   = useState(true)
-  const [userEmail, setUserEmail] = useState('')
-  const [totalXp, setTotalXp]   = useState(0)
-  const [streak, setStreak]     = useState(0)
-  const [callsToday, setCallsToday] = useState(0)
+  const [loading, setLoading]         = useState(true)
+  const [userEmail, setUserEmail]     = useState('')
+  const [totalXp, setTotalXp]         = useState(0)
+  const [streak, setStreak]           = useState(0)
+  const [callsToday, setCallsToday]   = useState(0)
   const [interestedToday, setInterestedToday] = useState(0)
-  const [xpToday, setXpToday]   = useState(0)
+  const [xpToday, setXpToday]         = useState(0)
   const [pendingLeads, setPendingLeads] = useState(0)
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace('/'); return }
-
       setUserEmail(user.email || '')
-
       const [{ data: stats }, { data: todayCalls }, { count }] = await Promise.all([
         supabase.from('user_stats').select('*').eq('user_id', user.id).single(),
-        supabase.from('calls').select('result, xp_earned').eq('user_id', user.id)
-          .gte('created_at', new Date().toISOString().split('T')[0]),
-        supabase.from('leads').select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id).eq('status', 'pending'),
+        supabase.from('calls').select('result, xp_earned').eq('user_id', user.id).gte('created_at', new Date().toISOString().split('T')[0]),
+        supabase.from('leads').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'pending'),
       ])
-
       setTotalXp(stats?.total_xp || 0)
       setStreak(stats?.streak_days || 0)
       setCallsToday(todayCalls?.length || 0)
-      setInterestedToday(todayCalls?.filter(c => c.result === 'interested').length || 0)
-      setXpToday(todayCalls?.reduce((s, c) => s + (c.xp_earned || 0), 0) || 0)
+      setInterestedToday(todayCalls?.filter((c: any) => c.result === 'interested').length || 0)
+      setXpToday(todayCalls?.reduce((s: number, c: any) => s + (c.xp_earned || 0), 0) || 0)
       setPendingLeads(count || 0)
       setLoading(false)
     }
@@ -49,104 +44,95 @@ export default function DashboardPage() {
   const level    = getLevelFromXp(totalXp)
   const nextLvl  = getNextLevel(totalXp)
   const progress = getXpProgress(totalXp)
+  const name     = userEmail.split('@')[0]
 
   if (loading) return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--white)' }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--gray-mid)' }}>Cargando...</div>
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--gray-mid)' }}>Cargando...</div>
     </div>
   )
 
   return (
-    <div className="layout">
-      <Sidebar userEmail={userEmail} totalXp={totalXp} streak={streak} />
-      <div className="main">
-        <div className="topbar">
-          <span className="topbar-title">Inicio</span>
-          <div className="topbar-right">
-            <Link href="/leads" className="btn btn-secondary btn-md">📂 Subir leads</Link>
-            <Link href="/focus" className="btn btn-primary btn-md">📞 Iniciar sesión</Link>
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', paddingTop: 100 }}>
+      <NavBar userEmail={userEmail} />
+
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 32px 60px' }}>
+
+        {/* Saludo */}
+        <div style={{ marginBottom: 48, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-mid)', marginBottom: 6 }}>Buenos días</div>
+            <div style={{ fontSize: 56, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, color: 'var(--black)' }}>{name}.</div>
           </div>
+          {streak > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--black)', color: 'white', borderRadius: 100, padding: '14px 24px' }}>
+              <span style={{ fontSize: 22 }}>🔥</span>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.03em' }}>{streak} días</div>
+                <div style={{ fontSize: 11, color: '#555', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Racha</div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="page-content">
-          {/* Greeting */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
+        {/* KPIs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+          {[
+            { icon: '📞', value: callsToday,      label: 'Llamadas hoy', bg: 'white' },
+            { icon: '⭐', value: `${xpToday} XP`, label: 'XP hoy',       bg: 'var(--red)',    color: 'white' },
+            { icon: '✅', value: interestedToday,  label: 'Interesados',  bg: 'var(--green)',  color: 'white' },
+            { icon: '👥', value: pendingLeads,     label: 'Leads pendientes', bg: 'white' },
+          ].map(({ icon, value, label, bg, color }) => (
+            <div key={label} style={{ background: bg, borderRadius: 28, padding: '28px 24px', border: bg === 'white' ? '1px solid var(--gray-border)' : 'none' }}>
+              <div style={{ fontSize: 22, marginBottom: 12 }}>{icon}</div>
+              <div style={{ fontSize: 44, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: color || 'var(--black)', marginBottom: 6 }}>{value}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: color ? 'rgba(255,255,255,0.6)' : 'var(--gray-mid)' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA + acciones */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14 }}>
+          {/* CTA principal */}
+          <div style={{ background: 'var(--black)', borderRadius: 28, padding: '40px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 240 }}>
             <div>
-              <div className="section-label">Buenos días</div>
-              <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>
-                {userEmail.split('@')[0]}.
+              <div style={{ fontSize: 40, fontWeight: 900, color: 'white', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 24 }}>
+                {pendingLeads ? `${pendingLeads} leads esperando.` : 'Sube tus leads\ny empieza.'}
               </div>
-            </div>
-            {streak > 0 && (
-              <div className="streak-badge">
-                <span style={{ fontSize: 28 }}>🔥</span>
-                <div>
-                  <div className="days">{streak} días</div>
-                  <div className="lbl">Racha activa</div>
+              {/* Barra nivel */}
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#555', fontWeight: 600, marginBottom: 8 }}>
+                  <span>{level.name}</span>
+                  <span>{totalXp} / {nextLvl?.minXp || '∞'} XP</span>
+                </div>
+                <div style={{ background: '#1C1C1C', borderRadius: 100, height: 8, overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--red)', height: '100%', width: `${progress}%`, borderRadius: 100, transition: 'width 0.5s' }} />
                 </div>
               </div>
-            )}
+            </div>
+            <Link href="/focus" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'white', color: 'var(--black)', padding: '18px 36px', borderRadius: 100, fontWeight: 800, fontSize: 16, textDecoration: 'none', marginTop: 12 }}>
+              📞 &nbsp;Iniciar llamadas
+            </Link>
           </div>
 
-          {/* KPIs */}
-          <div className="kpi-grid" style={{ marginBottom: 24 }}>
-            <div className="kpi-card card">
-              <span style={{ fontSize: 22 }}>📞</span>
-              <span className="kpi-number">{callsToday}</span>
-              <span className="kpi-label">Llamadas hoy</span>
-            </div>
-            <div className="kpi-card card card-purple">
-              <span style={{ fontSize: 22 }}>⭐</span>
-              <span className="kpi-number" style={{ color: 'var(--purple)' }}>{xpToday}</span>
-              <span className="kpi-label">XP hoy</span>
-            </div>
-            <div className="kpi-card" style={{ background: 'var(--green-lt)', borderRadius: 18, padding: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 22 }}>✅</span>
-              <span className="kpi-number" style={{ color: 'var(--green)' }}>{interestedToday}</span>
-              <span className="kpi-label">Interesados</span>
-            </div>
-            <div className="kpi-card card">
-              <span style={{ fontSize: 22 }}>👥</span>
-              <span className="kpi-number">{pendingLeads}</span>
-              <span className="kpi-label">Leads pendientes</span>
-            </div>
-          </div>
-
-          {/* Bottom */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
-            <div className="card card-black" style={{ padding: 36, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 260 }}>
-              <div>
-                <div style={{ fontSize: 36, fontWeight: 900, color: 'white', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 20 }}>
-                  {pendingLeads ? `${pendingLeads} leads esperando.` : 'Sube tus leads\ny empieza.'}
-                </div>
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#555', fontWeight: 600, marginBottom: 8 }}>
-                    <span>Nivel {level.level} · {level.name}</span>
-                    <span>{totalXp} / {nextLvl?.minXp || '∞'} XP</span>
-                  </div>
-                  <div style={{ background: '#1A1A1A', borderRadius: 8, height: 10, overflow: 'hidden' }}>
-                    <div style={{ background: 'var(--purple)', height: '100%', width: `${progress}%`, borderRadius: 8, transition: 'width 0.5s' }} />
-                  </div>
-                </div>
-              </div>
-              <Link href="/focus" className="btn btn-primary btn-lg btn-full" style={{ background: 'white', color: 'black' }}>
-                📞 &nbsp;INICIAR SESIÓN DE LLAMADAS
+          {/* Acciones rápidas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { href: '/leads',     icon: '📂', label: 'Subir nuevo Excel' },
+              { href: '/leads',     icon: '👥', label: 'Ver lista de leads' },
+              { href: '/analytics', icon: '📊', label: 'Ver analítica' },
+            ].map(({ href, icon, label }) => (
+              <Link key={label} href={href} style={{
+                flex: 1, display: 'flex', alignItems: 'center', gap: 12,
+                padding: '20px 24px', background: 'white',
+                borderRadius: 20, textDecoration: 'none',
+                color: 'var(--black)', fontSize: 14, fontWeight: 600,
+                border: '1px solid var(--gray-border)', transition: 'background 0.15s',
+              }}>
+                <span style={{ fontSize: 20 }}>{icon}</span>
+                {label}
               </Link>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { href: '/leads',     icon: '📂', label: 'Subir nuevo Excel' },
-                { href: '/leads',     icon: '👥', label: 'Ver lista de leads' },
-                { href: '/analytics', icon: '📊', label: 'Ver analítica' },
-              ].map(({ href, icon, label }) => (
-                <Link key={label} href={href}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', background: 'var(--gray)', borderRadius: 14, textDecoration: 'none', color: 'var(--black)', fontSize: 14, fontWeight: 600 }}>
-                  <span style={{ fontSize: 18 }}>{icon}</span>
-                  {label}
-                </Link>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>

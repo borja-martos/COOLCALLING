@@ -1,115 +1,123 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Sidebar from '@/components/Sidebar'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import NavBar from '@/components/NavBar'
 import { getLevelFromXp } from '@/lib/gamification'
 
-export default async function AnalyticsPage() {
+export default function AnalyticsPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
+  const router   = useRouter()
+  const [loading, setLoading]   = useState(true)
+  const [userEmail, setUserEmail] = useState('')
+  const [totalXp, setTotalXp]   = useState(0)
+  const [streak, setStreak]     = useState(0)
+  const [total, setTotal]       = useState(0)
+  const [interested, setInterested] = useState(0)
+  const [followup, setFollowup] = useState(0)
+  const [contactRate, setContactRate] = useState(0)
+  const [interestRate, setInterestRate] = useState(0)
+  const [dayCounts, setDayCounts] = useState<number[]>(Array(7).fill(0))
 
-  const { data: stats } = await supabase.from('user_stats').select('*').eq('user_id', user.id).single()
-  const totalXp = stats?.total_xp || 0
-  const streak  = stats?.streak_days || 0
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/'); return }
+      setUserEmail(user.email || '')
+      const { data: stats } = await supabase.from('user_stats').select('*').eq('user_id', user.id).single()
+      setTotalXp(stats?.total_xp || 0)
+      setStreak(stats?.streak_days || 0)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: calls } = await supabase.from('calls').select('result, created_at').eq('user_id', user.id).gte('created_at', sevenDaysAgo)
+      const t = calls?.length || 0
+      const int = calls?.filter((c: any) => c.result === 'interested').length || 0
+      const fol = calls?.filter((c: any) => c.result === 'followup').length || 0
+      const noAns = calls?.filter((c: any) => c.result === 'no_answer').length || 0
+      setTotal(t); setInterested(int); setFollowup(fol)
+      setContactRate(t ? Math.round(((t - noAns) / t) * 100) : 0)
+      setInterestRate(t ? Math.round((int / t) * 100) : 0)
+      const now = new Date()
+      setDayCounts(Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(now); d.setDate(d.getDate() - (6 - i))
+        const dateStr = d.toISOString().split('T')[0]
+        return calls?.filter((c: any) => c.created_at.startsWith(dateStr)).length || 0
+      }))
+      setLoading(false)
+    }
+    load()
+  }, [])
+
   const level   = getLevelFromXp(totalXp)
-
-  // Last 7 days calls
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: calls } = await supabase
-    .from('calls').select('result, created_at').eq('user_id', user.id).gte('created_at', sevenDaysAgo)
-
-  const total     = calls?.length || 0
-  const interested  = calls?.filter(c => c.result === 'interested').length || 0
-  const followup    = calls?.filter(c => c.result === 'followup').length || 0
-  const contactRate = total ? Math.round(((total - (calls?.filter(c => c.result === 'no_answer').length || 0)) / total) * 100) : 0
-  const interestRate = total ? Math.round((interested / total) * 100) : 0
-
-  // Per-day counts
-  const days = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-  const now  = new Date()
-  const dayCounts = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(now)
-    d.setDate(d.getDate() - (6 - i))
-    const dateStr = d.toISOString().split('T')[0]
-    return calls?.filter(c => c.created_at.startsWith(dateStr)).length || 0
-  })
   const maxCount = Math.max(...dayCounts, 1)
+  const days    = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+  const now     = new Date()
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--gray-mid)' }}>Cargando...</div>
+    </div>
+  )
 
   return (
-    <div className="layout">
-      <Sidebar userEmail={user.email} totalXp={totalXp} streak={streak} />
-      <div className="main">
-        <div className="topbar">
-          <span className="topbar-title">Analítica</span>
-          <div className="topbar-right">
-            <div style={{ display: 'flex', background: 'var(--gray)', borderRadius: 10, padding: 4, gap: 2 }}>
-              {['Hoy', 'Semana', 'Mes'].map((p, i) => (
-                <div key={p} style={{ padding: '8px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                  background: i === 1 ? 'white' : 'transparent', color: i === 1 ? 'var(--black)' : 'var(--gray-mid)', cursor: 'pointer' }}>
-                  {p}
-                </div>
-              ))}
+    <div style={{ minHeight: '100vh', background: 'var(--cream)', paddingTop: 100 }}>
+      <NavBar userEmail={userEmail} />
+
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 32px 60px' }}>
+
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-mid)', marginBottom: 8 }}>Últimos 7 días</div>
+          <div style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>Tu analítica.</div>
+        </div>
+
+        {/* KPIs */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+          {[
+            { icon: '📞', value: total,           label: 'Llamadas',    bg: 'white' },
+            { icon: '📶', value: `${contactRate}%`, label: '% Contacto', bg: 'var(--red)',   color: 'white' },
+            { icon: '✅', value: `${interestRate}%`, label: '% Interés', bg: 'var(--green)', color: 'white' },
+            { icon: '📅', value: followup,         label: 'Follow-ups',  bg: 'white' },
+          ].map(({ icon, value, label, bg, color }) => (
+            <div key={label} style={{ background: bg, borderRadius: 28, padding: '28px 24px', border: bg === 'white' ? '1px solid var(--gray-border)' : 'none' }}>
+              <div style={{ fontSize: 22, marginBottom: 12 }}>{icon}</div>
+              <div style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: color || 'var(--black)', marginBottom: 6 }}>{value}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: color ? 'rgba(255,255,255,0.6)' : 'var(--gray-mid)' }}>{label}</div>
             </div>
+          ))}
+        </div>
+
+        {/* Gráfica */}
+        <div style={{ background: 'white', borderRadius: 28, padding: '36px 40px', marginBottom: 14, border: '1px solid var(--gray-border)' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 32, letterSpacing: '-0.01em' }}>Llamadas por día</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 140 }}>
+            {dayCounts.map((count, i) => {
+              const isMax = count === Math.max(...dayCounts) && count > 0
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, height: '100%', justifyContent: 'flex-end' }}>
+                  <div style={{ width: '100%', background: isMax ? 'var(--red)' : 'var(--gray)', borderRadius: '8px 8px 0 0', height: `${(count / maxCount) * 100}%`, minHeight: count > 0 ? 8 : 0, transition: 'height 0.3s' }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-mid)', textTransform: 'uppercase' }}>
+                    {days[(now.getDay() + i - 6 + 14) % 7]}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
-        <div className="page-content">
-          {/* KPIs */}
-          <div className="kpi-grid" style={{ marginBottom: 24 }}>
-            <div className="kpi-card card">
-              <span style={{ fontSize: 22 }}>📞</span>
-              <span className="kpi-number">{total}</span>
-              <span className="kpi-label">Llamadas</span>
-            </div>
-            <div className="kpi-card card card-purple">
-              <span style={{ fontSize: 22 }}>📶</span>
-              <span className="kpi-number" style={{ color: 'var(--purple)' }}>{contactRate}%</span>
-              <span className="kpi-label">% Contacto</span>
-            </div>
-            <div className="kpi-card" style={{ background: 'var(--green-lt)', borderRadius: 18, padding: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 22 }}>✅</span>
-              <span className="kpi-number" style={{ color: 'var(--green)' }}>{interestRate}%</span>
-              <span className="kpi-label">% Interés</span>
-            </div>
-            <div className="kpi-card card">
-              <span style={{ fontSize: 22 }}>📅</span>
-              <span className="kpi-number">{followup}</span>
-              <span className="kpi-label">Follow-ups</span>
+
+        {/* Stats abajo */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: 'var(--black)', borderRadius: 28, padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 32 }}>🔥</span>
+            <div>
+              <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.03em', color: 'white' }}>{streak} días</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#555', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Racha actual</div>
             </div>
           </div>
-
-          {/* Chart */}
-          <div className="card" style={{ padding: 32, marginBottom: 20 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 24, letterSpacing: '-0.01em' }}>
-              Llamadas por día — últimos 7 días
-            </div>
-            <div className="bar-chart">
-              {dayCounts.map((count, i) => (
-                <div key={i} className="bar-group">
-                  <div className={`bar ${i === dayCounts.indexOf(Math.max(...dayCounts)) ? 'purple' : ''}`}
-                    style={{ height: `${(count / maxCount) * 100}%`, minHeight: count > 0 ? 8 : 0 }} />
-                  <span className="bar-label">{days[(now.getDay() + i - 6 + 14) % 7]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bottom stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <span style={{ fontSize: 28 }}>🔥</span>
-              <div>
-                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>{streak} días</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-mid)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Racha actual</div>
-              </div>
-            </div>
-            <div className="card card-purple" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <span style={{ fontSize: 28 }}>⭐</span>
-              <div>
-                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--purple)' }}>{totalXp}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--purple)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  {level.name} · XP total
-                </div>
-              </div>
+          <div style={{ background: 'var(--red)', borderRadius: 28, padding: '28px 32px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 32 }}>⭐</span>
+            <div>
+              <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.03em', color: 'white' }}>{totalXp}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{level.name} · XP total</div>
             </div>
           </div>
         </div>
