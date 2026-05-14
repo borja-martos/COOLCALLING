@@ -1,25 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { generateEmail } from '@/lib/anthropic'
 
+function getSupabase(token: string) {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+}
+
 export async function POST(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const supabase = getSupabase(token)
+  const { data: { user } } = await supabase.auth.getUser(token)
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { leadId, result, voiceNotes, duration, xpEarned } = await req.json()
 
-  // Get lead info
   const { data: lead } = await supabase
     .from('leads').select('company, name').eq('id', leadId).single()
 
-  // Generate email if needed
   let email = null
   if (result === 'interested' || result === 'followup') {
     email = await generateEmail(lead?.company || lead?.name || '', result, voiceNotes || '')
   }
 
-  // Save call
   await supabase.from('calls').insert({
     user_id: user.id, lead_id: leadId, result,
     voice_notes: voiceNotes, duration_seconds: duration,
@@ -27,24 +35,17 @@ export async function POST(req: NextRequest) {
     email_generated: email ? JSON.stringify(email) : null,
   })
 
-  // Update lead status
   await supabase.from('leads').update({ status: result }).eq('id', leadId)
 
-  // Update user stats
   const today = new Date().toISOString().split('T')[0]
   const { data: stats } = await supabase
     .from('user_stats').select('*').eq('user_id', user.id).single()
 
-  const lastDate  = stats?.last_active_date
-  const isToday   = lastDate === today
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-  const wasYesterday = lastDate === yesterday
-
-  const newStreak = isToday
+  const lastDate     = stats?.last_active_date
+  const yesterday    = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+  const newStreak    = lastDate === today
     ? stats.streak_days
-    : wasYesterday
-      ? (stats.streak_days || 0) + 1
-      : 1
+    : lastDate === yesterday ? (stats.streak_days || 0) + 1 : 1
 
   await supabase.from('user_stats').upsert({
     user_id: user.id,
