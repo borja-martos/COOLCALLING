@@ -70,14 +70,18 @@ export default function LeadsPage() {
   }
 
   const chistes = [
-    { emoji: '📞', texto: '¿Por qué los vendedores nunca se pierden? Porque siempre tienen un buen "pitch".' },
-    { emoji: '😅', texto: 'Cliente: "No me interesa." Vendedor: "¿Y si le digo que es gratis?" Cliente: "¿Cuántos quiere?"' },
-    { emoji: '🧠', texto: 'El 80% de las ventas se cierran después del 5º seguimiento. El 80% de los vendedores se rinden en el 1º.' },
+    { emoji: '🦷', texto: '¿Qué le dice un diente a otro diente? Me alegra que estés a mi lado.' },
+    { emoji: '🧦', texto: '¿Por qué los calcetines no pueden tener secretos? Porque siempre se les va la lengua.' },
+    { emoji: '🐄', texto: '¿Qué le dice una vaca a otra? Nada. Las vacas no hablan.' },
+    { emoji: '🐸', texto: '¿Cómo se dice rana en japonés? Frogamoto.' },
+    { emoji: '🍕', texto: '¿Por qué la pizza no puede contar chistes? Porque siempre se queda sin relleno.' },
     { emoji: '☕', texto: 'Un SDR entra a una cafetería. El café le dice "no, gracias". El SDR anota: "follow-up en 3 días".' },
+    { emoji: '😴', texto: '¿Por qué el libro de matemáticas estaba triste? Porque tenía demasiados problemas.' },
     { emoji: '🎯', texto: '¿Cuál es el CRM favorito de los malos vendedores? La memoria.' },
-    { emoji: '📊', texto: 'Mi pipeline tiene más fantasmas que un cementerio en Halloween.' },
+    { emoji: '🧠', texto: 'El 80% de las ventas se cierran después del 5º seguimiento. El 80% de los vendedores se rinden en el 1º.' },
+    { emoji: '🦆', texto: '¿Qué le dice un pato a otro? Cuá cuá cuá. (No hay más, es un pato.)' },
     { emoji: '🤝', texto: '— ¿Cerró la venta? — No, pero quedamos en hablar "en algún momento". — Eso es un no. — Es un maybe.' },
-    { emoji: '💪', texto: 'Las llamadas en frío son como el gym: el primer día duele, el décimo ya no sientes nada.' },
+    { emoji: '🐌', texto: '¿Qué hace una vaca con un mapa? Nada, las vacas no saben leer mapas. Ni las personas con un mapa de IKEA.' },
   ]
 
   return (
