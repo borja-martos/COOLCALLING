@@ -69,6 +69,17 @@ export default function LeadsPage() {
     if (file) handleFile(file)
   }
 
+  const chistes = [
+    { emoji: '📞', texto: '¿Por qué los vendedores nunca se pierden? Porque siempre tienen un buen "pitch".' },
+    { emoji: '😅', texto: 'Cliente: "No me interesa." Vendedor: "¿Y si le digo que es gratis?" Cliente: "¿Cuántos quiere?"' },
+    { emoji: '🧠', texto: 'El 80% de las ventas se cierran después del 5º seguimiento. El 80% de los vendedores se rinden en el 1º.' },
+    { emoji: '☕', texto: 'Un SDR entra a una cafetería. El café le dice "no, gracias". El SDR anota: "follow-up en 3 días".' },
+    { emoji: '🎯', texto: '¿Cuál es el CRM favorito de los malos vendedores? La memoria.' },
+    { emoji: '📊', texto: 'Mi pipeline tiene más fantasmas que un cementerio en Halloween.' },
+    { emoji: '🤝', texto: '— ¿Cerró la venta? — No, pero quedamos en hablar "en algún momento". — Eso es un no. — Es un maybe.' },
+    { emoji: '💪', texto: 'Las llamadas en frío son como el gym: el primer día duele, el décimo ya no sientes nada.' },
+  ]
+
   return (
     <div className="layout">
       <Sidebar />
@@ -76,7 +87,8 @@ export default function LeadsPage() {
         <div className="topbar">
           <span className="topbar-title">Leads</span>
         </div>
-        <div className="page-content" style={{ maxWidth: 680 }}>
+        <div style={{ display: 'flex', gap: 40, padding: '32px 40px', alignItems: 'flex-start' }}>
+        <div className="page-content" style={{ maxWidth: 680, padding: 0, flex: '0 0 680px' }}>
           <div style={{ marginBottom: 32 }}>
             <h2 style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 8 }}>Sube tus leads</h2>
             <p style={{ fontSize: 16, color: 'var(--gray-mid)' }}>
@@ -160,6 +172,23 @@ export default function LeadsPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Panel de chistes */}
+        <div style={{ flex: 1, paddingTop: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gray-mid)', marginBottom: 20 }}>
+            Mientras esperas 😄
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {chistes.map((c, i) => (
+              <div key={i} style={{ background: 'var(--gray)', borderRadius: 14, padding: '16px 20px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{c.emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: 'var(--black)' }}>{c.texto}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         </div>
       </div>
     </div>
