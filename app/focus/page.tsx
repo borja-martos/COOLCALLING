@@ -243,7 +243,7 @@ export default function FocusPage() {
         <div className="xp-float">+{callResult.xpEarned} XP ⭐</div>
       )}
 
-      <div className="focus-wrap" style={{ marginLeft: 0, flex: 1 }}>
+      <div className="focus-wrap">
         {/* Top bar */}
         <div className="focus-topbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 800 }}>
