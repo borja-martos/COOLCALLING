@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-Light.ttf') format('truetype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-ExtraBold.ttf') format('truetype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'HostGrotesk'; src: url('/fonts/HostGrotesk-ExtraBold.ttf') format('truetype'); font-weight: 900; font-style: normal; font-display: swap; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,7 +27,7 @@
   --sidebar-w:  220px;
 }
 
-html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--white); color: var(--black); -webkit-font-smoothing: antialiased; }
+html, body { height: 100%; font-family: 'HostGrotesk', sans-serif; background: var(--white); color: var(--black); -webkit-font-smoothing: antialiased; }
 
 /* ── LAYOUT ── */
 .layout { display: flex; min-height: 100vh; }
