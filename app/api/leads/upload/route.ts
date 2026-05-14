@@ -33,12 +33,23 @@ export async function POST(req: NextRequest) {
   const normalize = (row: Record<string, string>) => {
     const keys = Object.keys(row)
     const find = (...terms: string[]) =>
-      keys.find(k => terms.some(t => k.toLowerCase().includes(t))) || ''
+      keys.find(k => terms.some(t => k.toLowerCase().replace(/[^a-z0-9]/g, '').includes(t.replace(/[^a-z0-9]/g, '')))) || ''
+
+    // Phone: buscar cualquier columna que tenga números de teléfono
+    const phoneKey = find('telefono', 'telef', 'phone', 'tel', 'movil', 'móvil', 'celular', 'cel', 'contacto', 'tlf', 'telf')
+    // Si no hay columna clara de teléfono, buscar la primera columna con números
+    const fallbackPhoneKey = !phoneKey
+      ? keys.find(k => {
+          const val = String(row[k] || '')
+          return /[\d\s\-\+\(\)]{7,}/.test(val)
+        }) || ''
+      : phoneKey
+
     return {
-      name:    String(row[find('nombre', 'name', 'contacto')] || '').trim(),
-      phone:   String(row[find('telefono', 'teléfono', 'phone', 'tel')] || '').trim(),
-      website: String(row[find('web', 'url', 'website', 'pagina')] || '').trim(),
-      company: String(row[find('empresa', 'company', 'nombre')] || '').trim(),
+      name:    String(row[find('nombre', 'name', 'contacto', 'persona', 'responsable')] || '').trim(),
+      phone:   String(row[fallbackPhoneKey] || '').trim(),
+      website: String(row[find('web', 'url', 'website', 'pagina', 'página', 'dominio', 'http')] || '').trim(),
+      company: String(row[find('empresa', 'company', 'negocio', 'cliente', 'razon', 'razón', 'nombre')] || '').trim(),
     }
   }
 
@@ -47,15 +58,15 @@ export async function POST(req: NextRequest) {
     return {
       user_id:  user.id,
       name:     n.name || n.company || `Lead ${i + 1}`,
-      phone:    n.phone,
+      phone:    n.phone || 'Sin teléfono',
       website:  n.website,
-      company:  n.company || n.name,
+      company:  n.company || n.name || `Lead ${i + 1}`,
       position: i,
       status:   'pending',
     }
-  }).filter(l => l.phone)
+  })
 
-  if (!leads.length) return NextResponse.json({ error: 'No se encontraron filas con teléfono' }, { status: 400 })
+  if (!leads.length) return NextResponse.json({ error: 'El archivo no tiene filas de datos' }, { status: 400 })
 
   const { data, error } = await supabase.from('leads').insert(leads).select('id, company, name')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
