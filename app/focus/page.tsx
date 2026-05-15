@@ -305,6 +305,9 @@ export default function FocusPage() {
                   {isRecording && <span className="transcript-cursor" />}
                 </div>
               </div>
+              <div style={{ fontSize: 11, color: 'var(--gray-mid)', lineHeight: 1.6, marginTop: 8, textAlign: 'left' }}>
+                🎙️ El dictado requiere permisos de micrófono activados en tu navegador. En Mac, también puedes pulsar <strong>Fn dos veces</strong> para activar el dictado del sistema.
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
