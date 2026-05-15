@@ -18,9 +18,10 @@ const PLACEHOLDERS = [
 export default function EssencePage() {
   const [userEmail, setUserEmail] = useState('')
   const [essence, setEssence]     = useState('')
+  const [draft, setDraft]         = useState('')
+  const [editing, setEditing]     = useState(false)
   const [loading, setLoading]     = useState(true)
   const [saving, setSaving]       = useState(false)
-  const [saved, setSaved]         = useState(false)
   const supabase = createClient()
   const router   = useRouter()
 
@@ -34,23 +35,37 @@ export default function EssencePage() {
         .select('essence')
         .eq('user_id', user.id)
         .single()
-      if (data?.essence) setEssence(data.essence)
+      const saved = data?.essence || ''
+      setEssence(saved)
+      setDraft(saved)
+      setEditing(!saved) // si no hay esencia, abrir directamente en modo edición
       setLoading(false)
     }
     load()
   }, [])
 
   async function handleSave() {
-    setSaving(true); setSaved(false)
+    setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     await supabase.from('company_profile').upsert({
       user_id: user.id,
-      essence,
+      essence: draft,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
-    setSaving(false); setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    setEssence(draft)
+    setSaving(false)
+    setEditing(false)
+  }
+
+  function handleEdit() {
+    setDraft(essence)
+    setEditing(true)
+  }
+
+  function handleCancel() {
+    setDraft(essence)
+    setEditing(false)
   }
 
   if (loading) return (
@@ -69,28 +84,103 @@ export default function EssencePage() {
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-mid)', marginBottom: 8 }}>Tu empresa</div>
           <div style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 12 }}>Esencia.</div>
           <div style={{ fontSize: 16, color: 'var(--gray-mid)', lineHeight: 1.6 }}>
-            Cuéntame quién eres y qué haces. Con esto, los emails de seguimiento que te sugiera serán mucho más tuyos.
+            Cuéntame quién eres y qué haces. Con esto, los emails de seguimiento serán mucho más tuyos.
           </div>
         </div>
 
-        {/* Textarea principal */}
-        <div style={{ background: 'white', borderRadius: 28, border: '1px solid var(--gray-border)', overflow: 'hidden', marginBottom: 16 }}>
-          <textarea
-            value={essence}
-            onChange={e => setEssence(e.target.value)}
-            placeholder={`Cuéntame sobre tu empresa. Por ejemplo:\n\n• ${PLACEHOLDERS.join('\n• ')}`}
-            style={{
-              width: '100%', minHeight: 320, padding: '28px 32px',
-              fontSize: 15, fontFamily: 'HostGrotesk, sans-serif',
-              lineHeight: 1.7, border: 'none', outline: 'none',
-              resize: 'vertical', background: 'transparent',
-              color: 'var(--black)', boxSizing: 'border-box',
-            }}
-          />
-        </div>
+        {/* ── MODO GUARDADO ── */}
+        {!editing && essence && (
+          <div style={{ marginBottom: 20 }}>
+            {/* Card esencia guardada */}
+            <div style={{
+              background: 'var(--black)', borderRadius: 28, padding: '32px 36px',
+              marginBottom: 14, position: 'relative',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', marginBottom: 16 }}>
+                ✅ Esencia guardada
+              </div>
+              <div style={{
+                fontSize: 15, lineHeight: 1.8, color: '#ccc',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                maxHeight: 240, overflow: 'hidden',
+                maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
+              }}>
+                {essence}
+              </div>
+            </div>
 
-        {/* Tips */}
-        <div style={{ background: 'var(--black)', borderRadius: 20, padding: '20px 24px', marginBottom: 24 }}>
+            {/* Botón modificar */}
+            <button
+              onClick={handleEdit}
+              style={{
+                width: '100%', height: 56, borderRadius: 100,
+                background: 'white', color: 'var(--black)',
+                border: '1.5px solid var(--gray-border)',
+                cursor: 'pointer', fontFamily: 'HostGrotesk, sans-serif',
+                fontSize: 15, fontWeight: 700, transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              ✏️ &nbsp;Modificar esencia
+            </button>
+          </div>
+        )}
+
+        {/* ── MODO EDICIÓN ── */}
+        {editing && (
+          <>
+            <div style={{ background: 'white', borderRadius: 28, border: '1px solid var(--gray-border)', overflow: 'hidden', marginBottom: 14 }}>
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                autoFocus
+                placeholder={`Cuéntame sobre tu empresa. Por ejemplo:\n\n• ${PLACEHOLDERS.join('\n• ')}`}
+                style={{
+                  width: '100%', minHeight: 320, padding: '28px 32px',
+                  fontSize: 15, fontFamily: 'HostGrotesk, sans-serif',
+                  lineHeight: 1.7, border: 'none', outline: 'none',
+                  resize: 'vertical', background: 'transparent',
+                  color: 'var(--black)', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+              <button
+                onClick={handleSave}
+                disabled={saving || !draft.trim()}
+                style={{
+                  flex: 1, height: 56, borderRadius: 100,
+                  background: saving || !draft.trim() ? 'var(--gray)' : 'var(--red)',
+                  color: saving || !draft.trim() ? 'var(--gray-mid)' : 'white',
+                  border: 'none', cursor: saving || !draft.trim() ? 'not-allowed' : 'pointer',
+                  fontFamily: 'HostGrotesk, sans-serif', fontSize: 16, fontWeight: 800,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {saving ? 'Guardando...' : 'Guardar esencia'}
+              </button>
+
+              {essence && (
+                <button
+                  onClick={handleCancel}
+                  style={{
+                    height: 56, padding: '0 28px', borderRadius: 100,
+                    background: 'white', color: 'var(--gray-mid)',
+                    border: '1.5px solid var(--gray-border)',
+                    cursor: 'pointer', fontFamily: 'HostGrotesk, sans-serif',
+                    fontSize: 15, fontWeight: 600,
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Tips — siempre visibles */}
+        <div style={{ background: 'var(--black)', borderRadius: 20, padding: '20px 24px' }}>
           <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', marginBottom: 12 }}>💡 Qué incluir para mejores emails</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {PLACEHOLDERS.map((p, i) => (
@@ -102,21 +192,6 @@ export default function EssencePage() {
           </div>
         </div>
 
-        {/* Botón guardar */}
-        <button
-          onClick={handleSave}
-          disabled={saving || !essence.trim()}
-          style={{
-            width: '100%', height: 56, borderRadius: 100,
-            background: saved ? 'var(--green)' : saving || !essence.trim() ? 'var(--gray)' : 'var(--red)',
-            color: saving || !essence.trim() ? 'var(--gray-mid)' : 'white',
-            border: 'none', cursor: saving || !essence.trim() ? 'not-allowed' : 'pointer',
-            fontFamily: 'HostGrotesk, sans-serif', fontSize: 16, fontWeight: 800,
-            transition: 'all 0.2s',
-          }}
-        >
-          {saved ? '✅ Guardado' : saving ? 'Guardando...' : 'Guardar esencia'}
-        </button>
       </div>
     </div>
   )
