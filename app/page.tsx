@@ -26,6 +26,12 @@ export default function LoginPage() {
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
+      // Si no quiere recordar sesión, la borramos de localStorage al cerrar la pestaña
+      if (!remember) {
+        window.addEventListener('beforeunload', () => {
+          supabase.auth.signOut()
+        }, { once: true })
+      }
       window.location.href = '/dashboard'
     } else {
       const { data, error } = await supabase.auth.signUp({ email, password })
