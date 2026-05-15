@@ -23,9 +23,17 @@ export async function POST(req: NextRequest) {
   const { data: lead } = await supabase
     .from('leads').select('company, name').eq('id', leadId).single()
 
+  const { data: profile } = await supabase
+    .from('company_profile').select('essence').eq('user_id', user.id).single()
+
   let email = null
   if (result === 'interested' || result === 'followup') {
-    email = await generateEmail(lead?.company || lead?.name || '', result, voiceNotes || '')
+    email = await generateEmail(
+      lead?.company || lead?.name || '',
+      result,
+      voiceNotes || '',
+      profile?.essence || ''
+    )
   }
 
   await supabase.from('calls').insert({

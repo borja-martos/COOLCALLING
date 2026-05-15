@@ -15,6 +15,7 @@ const NAV = [
   { href: '/focus',     label: 'Llamar' },
   { href: '/leads',     label: 'Leads' },
   { href: '/analytics', label: 'Analítica' },
+  { href: '/essence',   label: 'Esencia' },
 ]
 
 export default function NavBar({ userEmail = '', light = false }: NavBarProps) {

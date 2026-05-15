@@ -46,7 +46,8 @@ Devuelve EXACTAMENTE este JSON (sin markdown, sin explicaciones):
 export async function generateEmail(
   company: string,
   result: string,
-  notes: string
+  notes: string,
+  essence?: string
 ) {
   const resultLabels: Record<string, string> = {
     interested: 'interesado',
@@ -55,24 +56,29 @@ export async function generateEmail(
     not_interested: 'no interesado',
   }
 
+  const essenceBlock = essence?.trim()
+    ? `\nInformación sobre quien envía el email (úsala para personalizar tono, propuesta de valor y firma):\n${essence.trim()}\n`
+    : ''
+
   const message = await anthropic.messages.create({
     model: 'claude-opus-4-5',
-    max_tokens: 400,
-    system: `Eres un asistente de ventas. Generas emails de seguimiento cortos, naturales y efectivos en español. Respondes SOLO con JSON válido, sin texto adicional.`,
+    max_tokens: 500,
+    system: `Eres un asistente de ventas experto. Generas emails de seguimiento cortos, naturales y muy efectivos en español. Respondes SOLO con JSON válido, sin texto adicional.`,
     messages: [
       {
         role: 'user',
         content: `Genera un email de seguimiento basado en esta llamada:
 
-Empresa: ${company}
-Resultado: ${resultLabels[result] || result}
-Notas de la llamada: ${notes || 'Sin notas adicionales'}
-
+Empresa contactada: ${company}
+Resultado de la llamada: ${resultLabels[result] || result}
+Notas dictadas durante la llamada: ${notes || 'Sin notas adicionales'}
+${essenceBlock}
 Requisitos:
-- Máximo 80 palabras en el cuerpo
-- Tono cercano y profesional
-- Referencia algo concreto de las notas si las hay
-- Incluye un siguiente paso claro
+- Máximo 100 palabras en el cuerpo
+- Tono cercano y profesional, que suene humano
+- Si hay notas, referencia algo concreto de ellas
+- Incluye un siguiente paso claro y accionable
+- Si tienes información de la empresa emisora, úsala para personalizar la propuesta de valor
 
 Devuelve EXACTAMENTE este JSON:
 {
