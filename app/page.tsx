@@ -51,7 +51,7 @@ export default function LoginPage() {
 
       {/* Logo arriba centrado */}
       <div style={{ position: 'absolute', top: 32, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
-        <img src="/logo.svg" alt="CoolCalling" style={{ height: 22, filter: 'brightness(0) invert(1)' }} />
+        <img src="/logo.svg" alt="CoolCalling" style={{ height: 32, filter: 'brightness(0) invert(1)' }} />
       </div>
 
       {/* Card central */}
